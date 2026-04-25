@@ -10,17 +10,23 @@
         [--base-date 2026-03-20] \
         [--purpose "股权收购"] \
         [--law-firm "XX律师事务所"] \
-        [--lawyers "张三,李四"]
+        [--lawyers "张三,李四"] \
+        [--uscc 91110108MA0074PN30]    # 提供后自动调用元典 detail 接口（10 积分/次）
+        [--name-lookup]                # 未提供 USCC 时，按 --target 名称调用 info 接口检索候选
 
 功能:
     1. 在指定路径创建项目目录
     2. 生成 project-info.md（项目基本信息与进度跟踪）
     3. 生成 working-paper.md（10章合一的完整底稿，单一文件）
-    4. 创建 report/ 目录（存放最终报告）
+    4. 创建 report/ 与 raw/chineselaw/ 目录
+    5. API 智能路由（需 CHINESELAW_API_KEY）：
+       - 若提供 --uscc：调用 company-detail（精准）
+       - 否则若提供 --name-lookup：按 --target 调用 company-info（候选列表）
 """
 
 import argparse
 import os
+import subprocess
 import sys
 from datetime import date
 from pathlib import Path
@@ -190,6 +196,7 @@ def generate_project_info(args) -> str:
         f"| 第{num}章 | {name} | ⬜ 未开始 | |"
         for num, name, _, _ in CHAPTERS
     )
+    uscc_row = f"| **统一社会信用代码** | {args.uscc} |\n" if getattr(args, "uscc", "") else ""
     return f"""# 法律尽职调查项目信息
 
 ## 基本信息
@@ -197,7 +204,7 @@ def generate_project_info(args) -> str:
 | 项目 | 内容 |
 |------|------|
 | **目标公司** | {args.target} |
-| **委托人** | {args.client} |
+{uscc_row}| **委托人** | {args.client} |
 | **调查基准日** | {args.base_date} |
 | **调查目的** | {args.purpose} |
 | **律师事务所** | {args.law_firm} |
@@ -227,6 +234,12 @@ def main():
     parser.add_argument("--purpose", default="[待填写]", help="调查目的")
     parser.add_argument("--law-firm", default="[待填写]", help="律师事务所名称")
     parser.add_argument("--lawyers", default="[待填写]", help="经办律师姓名（多个用逗号分隔）")
+    parser.add_argument("--uscc", default="", help="目标公司统一社会信用代码（可选；提供后将调用 company-detail）")
+    parser.add_argument("--name-lookup", action="store_true",
+                        help="未提供 --uscc 时，按 --target 名称调用 company-info 接口检索候选企业")
+    parser.add_argument("--lookup-num", type=int, default=5,
+                        help="--name-lookup 时期望返回的候选数（1-50，默认 5）")
+    parser.add_argument("--skip-api", action="store_true", help="即使提供上述参数也不调用 API")
 
     args = parser.parse_args()
 
@@ -248,14 +261,72 @@ def main():
     (project_path / "report").mkdir(exist_ok=True)
     print(f"✅ 创建报告目录：report/")
 
+    # raw/chineselaw/ 目录（用于存放外部 API 原始响应）
+    raw_dir = project_path / "raw" / "chineselaw"
+    raw_dir.mkdir(parents=True, exist_ok=True)
+    print(f"✅ 创建原始数据目录：raw/chineselaw/")
+
+    # 可选：调用元典 API
+    if not args.skip_api:
+        if args.uscc:
+            _maybe_call_chineselaw_detail(args.uscc, raw_dir)
+        elif args.name_lookup:
+            _maybe_call_chineselaw_info(args.target, args.lookup_num, raw_dir)
+
     print(f"\n{'='*50}")
     print(f"🎉 项目初始化完成！")
     print(f"📁 项目路径：{project_path}")
     print(f"📋 目标公司：{args.target}")
     print(f"👤 委托人：{args.client}")
     print(f"📅 基准日：{args.base_date}")
+    if args.uscc:
+        print(f"🆔 USCC：{args.uscc}")
     print(f"\n📝 下一步：使用 draft 模式逐章撰写底稿")
     print(f"   示例：请帮我撰写第1章的底稿，材料在 [路径]")
+
+
+def _maybe_call_chineselaw_detail(uscc: str, raw_dir: Path) -> None:
+    """已知 USCC：调用 company-detail 精准查询。失败不阻塞主流程。"""
+    if not _check_api_prereq():
+        return
+    client_script = Path(__file__).parent / "chineselaw_client.py"
+    print(f"\n→ 调用元典「企业详情」接口（USCC={uscc}）……")
+    try:
+        subprocess.run(
+            [sys.executable, str(client_script), "company-detail",
+             "--uscc", uscc, "--output", str(raw_dir)],
+            check=False,
+        )
+    except Exception as e:
+        print(f"⚠️  调用失败（不影响主流程）：{e}")
+
+
+def _maybe_call_chineselaw_info(name: str, num: int, raw_dir: Path) -> None:
+    """仅知名称：调用 company-info 检索候选。失败不阻塞主流程。"""
+    if not _check_api_prereq():
+        return
+    client_script = Path(__file__).parent / "chineselaw_client.py"
+    print(f"\n→ 调用元典「企业名称检索」接口（name={name}, num={num}）……")
+    print(f"   （命中后请人工确认目标企业的 USCC，再用 --uscc 重跑或手工写入 project-info.md）")
+    try:
+        subprocess.run(
+            [sys.executable, str(client_script), "company-info",
+             "--name", name, "--num", str(num), "--output", str(raw_dir)],
+            check=False,
+        )
+    except Exception as e:
+        print(f"⚠️  调用失败（不影响主流程）：{e}")
+
+
+def _check_api_prereq() -> bool:
+    if not os.environ.get("CHINESELAW_API_KEY"):
+        print("\n⚠️  未设置 CHINESELAW_API_KEY 环境变量，跳过元典 API 调用。")
+        print("   如需启用，请：export CHINESELAW_API_KEY=你的key")
+        return False
+    if not (Path(__file__).parent / "chineselaw_client.py").exists():
+        print(f"\n⚠️  未找到 chineselaw_client.py，跳过元典 API 调用。")
+        return False
+    return True
 
 
 if __name__ == "__main__":

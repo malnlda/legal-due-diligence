@@ -2,7 +2,7 @@
 
 中国法律尽职调查 Skill 分享版。
 
-- 版本：v26.4.20
+- 版本：v26.4.25.2039
 - 适用环境：Claude Code
 - 运行要求：Python 3.10+
 
@@ -25,7 +25,7 @@
 ## 目录结构
 
 ```text
-legal-due-diligence-v26.4.20/
+legal-due-diligence-v26.4.25.2039/
 ├── SKILL.md
 ├── README.md
 ├── assets/
@@ -33,9 +33,14 @@ legal-due-diligence-v26.4.20/
 │   └── working-paper-template.md
 ├── references/
 │   ├── report-standards.md
-│   └── section-guide.md
+│   ├── section-guide.md
+│   ├── external-apis.md            # 外部 API 接入索引
+│   └── chineselaw/
+│       ├── company-detail.md       # 元典「按 id/USCC 详情」接口规范
+│       └── company-info.md         # 元典「按名称检索」接口规范
 └── scripts/
-    └── init_project.py
+    ├── init_project.py             # 含 --uscc / --name-lookup 智能路由
+    └── chineselaw_client.py        # 元典开放平台 API 客户端（多子命令）
 ```
 
 ## 安装方法
@@ -43,7 +48,7 @@ legal-due-diligence-v26.4.20/
 ### 方法一：手动复制安装
 
 1. 解压压缩包。
-2. 将文件夹 `legal-due-diligence-v26.4.20` 复制到你的 Claude Skills 目录。
+2. 将文件夹 `legal-due-diligence-v26.4.25.2039` 复制到你的 Claude Skills 目录。
 3. **建议将文件夹重命名为 `legal-due-diligence`**，以保持与 Skill 名称一致。
 
 常见目录示例：
@@ -65,7 +70,7 @@ legal-due-diligence-v26.4.20/
 
 ### 方法二：作为分享包保存
 
-如果你只是想留档或转发，可以直接保留当前目录名 `legal-due-diligence-v26.4.20`；
+如果你只是想留档或转发，可以直接保留当前目录名 `legal-due-diligence-v26.4.25.2039`；
 真正用于本地调用时，再改名为 `legal-due-diligence` 更稳妥。
 
 ## 使用方式
@@ -169,11 +174,25 @@ legal-due-diligence-v26.4.20/
 ## 主要文件说明
 
 - `SKILL.md`：Skill 主说明文件
-- `scripts/init_project.py`：项目初始化脚本
+- `scripts/init_project.py`：项目初始化脚本（支持 `--uscc` 自动拉取工商信息）
+- `scripts/chineselaw_client.py`：元典开放平台 API 客户端
 - `assets/working-paper-template.md`：底稿模板
 - `assets/report-template.md`：报告模板
 - `references/section-guide.md`：分章节调查指南
 - `references/report-standards.md`：报告转化和语言规范
+- `references/external-apis.md`：外部 API 接入索引与通用规则
+- `references/chineselaw/company-detail.md`：元典「按 id/USCC 详情」接口字段映射与引用规范
+- `references/chineselaw/company-info.md`：元典「按名称/股票简称检索」接口规范
+
+## 外部 API 配置（可选）
+
+如需启用元典开放平台接口（v26.4.25.2006 新增）：
+
+```bash
+export CHINESELAW_API_KEY=你的_api_key
+```
+
+凭证**绝不入库**到 skill 包或项目仓库。详情见 `references/external-apis.md`。
 
 ## 适合谁用
 
@@ -192,7 +211,13 @@ legal-due-diligence-v26.4.20/
 
 ## 版本说明
 
-当前分享版为：`v26.4.20`
+当前分享版为：`v26.4.25.2039`
+
+### 版本说明
+
+- v26.4.25.2039：新增元典「按名称/股票简称检索」接口（`company-info`）；init 支持 `--name-lookup` 智能路由
+- v26.4.25.2006：新增元典「按 id/USCC 详情」接口（`company-detail`）
+- v26.4.20：基础版本（4 模式 + 10 章工作流）
 
 如后续继续迭代，建议同步维护：
 - `metadata.version`

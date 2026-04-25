@@ -10,14 +10,18 @@ description: |
   '尽调报告', '法律尽调', or needs to write legal due diligence working papers or reports.
 metadata:
   author: Chengzhe Mo
-  version: "26.4.20"
+  version: "26.4.25.2039"
 compatibility: Designed for Claude Code. Requires Python 3.10+ for initialization script.
 ---
 
-# 法律尽职调查 Skill v26.4.20
+# 法律尽职调查 Skill v26.4.25.2039
 
-> 分享版本：v26.4.20  
+> 分享版本：v26.4.25.2039  
 > 使用提示：示例中的 `路径：[项目存放路径]` 需要替换为你自己的本机目录后再使用。
+
+> **本版新增**：可选接入元典开放平台两个接口——
+> 「按企业名称/股票简称检索」（**名称起步入口**）与「按 id/USCC 精准查询」，
+> 用于辅助生成第 1、3、4、9 章底稿初稿。详见 [§ 外部数据源（可选增强）](#外部数据源可选增强)。
 
 ## 目标
 
@@ -62,12 +66,16 @@ compatibility: Designed for Claude Code. Requires Python 3.10+ for initializatio
 - `purpose`：调查目的（如"股权收购"、"投资入股"）
 - `law_firm`：律师事务所名称
 - `lawyers`：经办律师姓名（可多个）
+- `uscc`：目标公司统一社会信用代码（提供后将自动调用元典 `company-detail`，参见 [§ 外部数据源](#外部数据源可选增强)）
+- `name_lookup`：未提供 USCC 时，按 `target` 名称调用元典 `company-info` 检索候选企业（命中后律师选定 USCC，再写入项目信息或重跑 init）
 
 **输出**：项目目录结构如下：
 ```
 [项目名称]-DD/
 ├── project-info.md       # 项目基本信息与进度跟踪
 ├── working-paper.md      # 完整底稿（10章合一，单一文件）
+├── raw/                  # 原始数据留痕（外部 API 响应）
+│   └── chineselaw/       # 元典开放平台原始 JSON
 └── report/
     └── (报告生成后存放于此)
 ```
@@ -80,9 +88,10 @@ compatibility: Designed for Claude Code. Requires Python 3.10+ for initializatio
 
 **操作步骤**：
 1. 读取 [references/section-guide.md](references/section-guide.md) 中**对应章节**的调查指南
-2. 阅读用户提供的调查材料（支持文件路径或粘贴文本）
-3. 按底稿六段结构撰写该章节内容
-4. 写入项目根目录的 `working-paper.md`（单一底稿文件，定位至对应章节更新）
+2. **检查是否可用外部 API**：若该章节在 [references/external-apis.md](references/external-apis.md) 中列出适用接口，且项目目录 `raw/` 下已有相应 JSON，**优先读取并整合**
+3. 阅读用户提供的调查材料（支持文件路径或粘贴文本）
+4. 按底稿六段结构撰写该章节内容
+5. 写入项目根目录的 `working-paper.md`（单一底稿文件，定位至对应章节更新）
 
 **必须获取的输入**：
 - `chapter`：章节编号（1-10）或章节名称
@@ -220,6 +229,78 @@ compatibility: Designed for Claude Code. Requires Python 3.10+ for initializatio
 
 ---
 
+## 外部数据源（可选增强）
+
+本 skill 支持以**可选**方式接入第三方法律/工商数据 API，用于辅助底稿撰写。
+所有外部数据**仅作为线索与初稿**，不得替代律师对原始材料的核验。
+
+### 已接入接口
+
+| 来源 | 接口 | 适用章节 | 计费 |
+|------|------|---------|------|
+| 元典开放平台 | 根据企业 id / USCC 获取企业详情（精准） | 第 1、3、4、9 章 | 10 积分/次 |
+| 元典开放平台 | 根据企业名称 / 股票简称查询（**名称起步入口**） | init 阶段定位目标；同上各章 | 10 积分/次（≤50 条） |
+
+详细规范、字段映射、引用模板见：
+- [references/external-apis.md](references/external-apis.md)（总索引 + 选用决策）
+- [references/chineselaw/company-detail.md](references/chineselaw/company-detail.md)
+- [references/chineselaw/company-info.md](references/chineselaw/company-info.md)
+
+### 触发方式
+
+**方式 A：init 时自动调用（已知 USCC）**
+
+```bash
+python3 scripts/init_project.py \
+    --path /path/to/project \
+    --target "北京华宇元典信息服务有限公司" \
+    --client "深圳XX投资有限公司" \
+    --uscc 91110108MA0074PN30
+```
+
+→ 调 `company-detail`，原始 JSON 存入 `<项目>/raw/chineselaw/`。
+
+**方式 B：init 时按名称检索候选（仅知名称/股票简称）**
+
+```bash
+python3 scripts/init_project.py \
+    --path /path/to/project \
+    --target "华宇软件" \
+    --client "深圳XX投资有限公司" \
+    --name-lookup --lookup-num 5
+```
+
+→ 调 `company-info`，打印候选清单。律师人工选定后：
+- 把 USCC 写入 `project-info.md`，或
+- 重跑：`init --uscc <选定USCC> --skip-api`（避免再扣积分）
+
+**方式 C：draft 前手动调用**
+
+```bash
+export CHINESELAW_API_KEY=xxxx
+python3 scripts/chineselaw_client.py company-info \
+    --name "目标公司全称" --num 10 \
+    --output /path/to/project/raw/chineselaw/
+python3 scripts/chineselaw_client.py company-detail \
+    --uscc XXX --output /path/to/project/raw/chineselaw/
+```
+
+### 凭证
+
+- 环境变量 `CHINESELAW_API_KEY`（推荐）
+- **任何凭证不得入库**到 skill 包或项目仓库
+
+### 引用规范（写入底稿时必须遵守）
+
+1. **不入材料清单**：API 数据**不得**列入 §X.2 已获取材料清单
+2. **明确来源**：在 §X.4 调查发现 段首注明"经查阅元典开放平台「企业详情」接口（调用时间 YYYY-MM-DD HH:MM，原始数据见 `raw/chineselaw/<文件名>`）"
+3. **冲突即风险**：若 API 数据与目标公司提供材料不一致，必须在 §X.5 风险提示中标注 🟡 中或 🔴 高风险
+4. **失败留痕**：API 调用失败时在 §X.6 律师备忘中记录时间与原因
+
+完整规则详见 [references/external-apis.md](references/external-apis.md)。
+
+---
+
 ## 使用示例
 
 ### 示例 1：初始化
@@ -231,6 +312,25 @@ compatibility: Designed for Claude Code. Requires Python 3.10+ for initializatio
 - 路径：[项目存放路径]
 - 基准日：2026-03-20
 - 目的：股权收购
+```
+
+### 示例 1b：初始化时自动拉取工商信息（已知 USCC）
+
+```
+帮我初始化一个尽调项目，并通过元典 API 自动拉取工商信息：
+- 目标公司：北京华宇元典信息服务有限公司
+- 统一社会信用代码：91110108MA0074PN30
+- 委托人：深圳XX投资有限公司
+- 路径：[项目存放路径]
+```
+
+### 示例 1c：仅知名称时按名称检索
+
+```
+我只知道目标公司的名称（或股票简称），请帮我先检索候选企业：
+- 目标公司：华宇软件
+- 委托人：深圳XX投资有限公司
+- 路径：[项目存放路径]
 ```
 
 ### 示例 2：写底稿
