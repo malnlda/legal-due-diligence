@@ -2,7 +2,7 @@
 
 中国法律尽职调查 Skill 分享版。
 
-- 版本：v26.4.25.2039
+- 版本：v26.4.29.1545
 - 适用环境：Claude Code
 - 运行要求：Python 3.10+
 
@@ -22,10 +22,27 @@
 - DD 报告生成
 - 公司主体尽调项目管理
 
+## 与 yd-enterprise-info 的协作关系
+
+本版本起，企业信息查询已从 legal-due-diligence 中**独立拆分**为单独 Skill：[yd-enterprise-info](https://github.com/malnlda/yd-enterprise-info)。
+
+- legal-due-diligence 专注于尽调工作流（结构化写作、底稿、报告）
+- yd-enterprise-info 专注于调用元典开放平台（22 个企业信息接口，支持翻页）
+
+在尽调过程中，当需要查询目标公司公开信息时（股东、专利、商标、诉讼、变更记录等），通过 yd-enterprise-info skill 调用对应接口获取，再将数据写入底稿。
+
+推荐安装方式（同时安装两个 Skill）：
+
+```bash
+# 将两个文件夹均放入 Skills 目录并分别重命名
+~/.claude/skills/legal-due-diligence/
+~/.claude/skills/yd-enterprise-info/
+```
+
 ## 目录结构
 
 ```text
-legal-due-diligence-v26.4.25.2039/
+legal-due-diligence-v26.4.29.1545/
 ├── SKILL.md
 ├── README.md
 ├── assets/
@@ -34,22 +51,19 @@ legal-due-diligence-v26.4.25.2039/
 ├── references/
 │   ├── report-standards.md
 │   ├── section-guide.md
-│   ├── external-apis.md            # 外部 API 接入索引
+│   ├── external-apis.md                          # 外部数据源索引（指向 yd-enterprise-info）
 │   └── chineselaw/
-│       ├── company-detail.md       # 元典「按 id/USCC 详情」接口规范
-│       └── company-info.md         # 元典「按名称检索」接口规范
+│       └── enterprise-endpoints-summary.md       # 元典企业信息接口速查表
 └── scripts/
-    ├── init_project.py             # 含 --uscc / --name-lookup 智能路由
-    └── chineselaw_client.py        # 元典开放平台 API 客户端（多子命令）
+    └── init_project.py                           # 项目初始化脚本
 ```
 
 ## 安装方法
 
 ### 方法一：手动复制安装
 
-1. 解压压缩包。
-2. 将文件夹 `legal-due-diligence-v26.4.25.2039` 复制到你的 Claude Skills 目录。
-3. **建议将文件夹重命名为 `legal-due-diligence`**，以保持与 Skill 名称一致。
+1. 将文件夹 `legal-due-diligence-v26.4.29.1545` 复制到你的 Claude Skills 目录。
+2. **建议将文件夹重命名为 `legal-due-diligence`**，以保持与 Skill 名称一致。
 
 常见目录示例：
 
@@ -70,7 +84,7 @@ legal-due-diligence-v26.4.25.2039/
 
 ### 方法二：作为分享包保存
 
-如果你只是想留档或转发，可以直接保留当前目录名 `legal-due-diligence-v26.4.25.2039`；
+如果你只是想留档或转发，可以直接保留当前目录名 `legal-due-diligence-v26.4.29.1545`；
 真正用于本地调用时，再改名为 `legal-due-diligence` 更稳妥。
 
 ## 使用方式
@@ -115,9 +129,11 @@ legal-due-diligence-v26.4.25.2039/
 示例：
 
 ```text
-请帮我撰写第2章“股权结构与股东信息”的底稿。
+请帮我撰写第2章"股权结构与股东信息"的底稿。
 材料路径：/path/to/materials/02-股权/
 ```
+
+如需查询目标公司公开信息（如股东、专利、商标等），可先通过 yd-enterprise-info skill 调用接口，再将返回数据写入底稿。
 
 ### 3. check：检查底稿完整性
 
@@ -174,25 +190,31 @@ legal-due-diligence-v26.4.25.2039/
 ## 主要文件说明
 
 - `SKILL.md`：Skill 主说明文件
-- `scripts/init_project.py`：项目初始化脚本（支持 `--uscc` 自动拉取工商信息）
-- `scripts/chineselaw_client.py`：元典开放平台 API 客户端
+- `scripts/init_project.py`：项目初始化脚本
 - `assets/working-paper-template.md`：底稿模板
 - `assets/report-template.md`：报告模板
-- `references/section-guide.md`：分章节调查指南
+- `references/section-guide.md`：分章节调查指南（各章含 yd-enterprise-info 调用提示）
 - `references/report-standards.md`：报告转化和语言规范
-- `references/external-apis.md`：外部 API 接入索引与通用规则
-- `references/chineselaw/company-detail.md`：元典「按 id/USCC 详情」接口字段映射与引用规范
-- `references/chineselaw/company-info.md`：元典「按名称/股票简称检索」接口规范
+- `references/external-apis.md`：外部数据源索引（指向 yd-enterprise-info skill）
+- `references/chineselaw/enterprise-endpoints-summary.md`：元典企业信息接口速查表（22 个接口）
 
-## 外部 API 配置（可选）
+## 企业信息查询（需配合 yd-enterprise-info）
 
-如需启用元典开放平台接口（v26.4.25.2006 新增）：
+本版本已将企业信息查询能力完全委托给独立 Skill [yd-enterprise-info](https://github.com/malnlda/yd-enterprise-info)，支持：
+
+- 股东与核心成员（`base-info`）
+- 变更记录（`change`）
+- 专利、软著、商标、ICP 备案（`patent` / `soft-right` / `brand` / `website`）
+- 对外投资、对外担保、股权质押与冻结
+- 诉讼文书、行政处罚、失信被执行人等 22 个接口
+
+所有接口均支持**自动翻页**，不受旧接口 10 条返回限制。
+
+使用时在对话中同时唤起两个 Skill 即可，API Key 通过环境变量配置在 yd-enterprise-info 中：
 
 ```bash
 export CHINESELAW_API_KEY=你的_api_key
 ```
-
-凭证**绝不入库**到 skill 包或项目仓库。详情见 `references/external-apis.md`。
 
 ## 适合谁用
 
@@ -211,10 +233,9 @@ export CHINESELAW_API_KEY=你的_api_key
 
 ## 版本说明
 
-当前分享版为：`v26.4.25.2039`
+当前分享版为：`v26.4.29.1545`
 
-### 版本说明
-
+- v26.4.29.1545：企业信息查询拆分为独立 Skill（yd-enterprise-info）；支持 22 个接口自动翻页；section-guide.md 各章新增 yd-enterprise-info 调用提示
 - v26.4.25.2039：新增元典「按名称/股票简称检索」接口（`company-info`）；init 支持 `--name-lookup` 智能路由
 - v26.4.25.2006：新增元典「按 id/USCC 详情」接口（`company-detail`）
 - v26.4.20：基础版本（4 模式 + 10 章工作流）
