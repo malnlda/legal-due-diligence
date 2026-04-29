@@ -66,6 +66,9 @@
 **信用信息确认**：
 > 经查询国家企业信用信息公示系统（查询日期：[日期]），目标公司不存在/存在经营异常名录记录，不存在/存在严重违法失信记录。[如存在：]具体情况如下：[列明]。
 
+> 💡 **元典工商数据辅助**：建议拉取 `base-info`（工商基本信息）、`change`（历次变更）、`abnormal`（经营异常）、`serious-violation`（严重违法失信）子命令数据辅助本章撰写。
+> 详见 [enterprise-endpoints-summary.md](chineselaw/enterprise-endpoints-summary.md)
+
 ---
 
 ## 第2章 股权结构与股东信息
@@ -134,6 +137,9 @@
 **股权代持发现**：
 > 经查阅目标公司提供的资料及访谈，本律师注意到[名义股东]与[实际出资人]之间存在股权代持安排，具体情况如下：[说明代持协议的主要内容]。本律师提请委托人特别关注：(1) 代持协议的法律效力；(2) 实际出资人是否可能主张显名化；(3) 代持关系对本次交易的影响。
 
+> 💡 **元典工商数据辅助**：建议拉取 `base-info`（股东/出资信息）、`equity-pledge`（股权质押）、`equity-frozen`（股权冻结）子命令数据辅助本章撰写。
+> 详见 [enterprise-endpoints-summary.md](chineselaw/enterprise-endpoints-summary.md)
+
 ---
 
 ## 第3章 公司治理与组织结构
@@ -190,6 +196,9 @@
 
 **三会运作确认**：
 > 经查阅目标公司提供的股东会/董事会/监事会会议文件，自[起始日期]至本报告基准日，目标公司共召开股东会[X]次、董事会[X]次、监事会（监事检查）[X]次。经抽查，上述会议的召集程序、表决方式和决议内容总体符合/不符合《公司法》及公司章程的规定。[如有问题：]本律师注意到以下问题：[具体问题]。
+
+> 💡 **元典工商数据辅助**：建议拉取 `base-info`（高管/分支机构信息）、`change`（历次组织结构变更）子命令数据辅助本章撰写。
+> 详见 [enterprise-endpoints-summary.md](chineselaw/enterprise-endpoints-summary.md)
 
 ---
 
@@ -261,6 +270,9 @@
 > **专利**：专利[X]项，其中发明专利[X]项、实用新型[X]项、外观设计[X]项。[列表说明]
 > **著作权**：软件著作权[X]项。[列表说明]
 
+> 💡 **元典工商数据辅助**：建议拉取 `brand`（商标）、`patent`（专利）、`soft-right`（软著）、`copyright-work`（作品著作权）、`outbound-invest`（对外投资）子命令数据辅助本章撰写。
+> 详见 [enterprise-endpoints-summary.md](chineselaw/enterprise-endpoints-summary.md)
+
 ---
 
 ## 第5章 业务经营与合同管理
@@ -323,6 +335,9 @@
 > |------|---------|---------|---------|-------|
 >
 > 上述资质均在有效期内，且经核查不存在被吊销、撤销的风险。[如有缺失：]但本律师注意到，目标公司从事[业务]尚未取得[资质]，存在[风险描述]。
+
+> 💡 **元典工商数据辅助**：建议拉取 `brand`（商标）、`patent`（专利）、`soft-right`（软著）、`website`（ICP 备案）子命令数据核查目标公司资质资产情况。
+> 详见 [enterprise-endpoints-summary.md](chineselaw/enterprise-endpoints-summary.md)
 
 ---
 
@@ -393,6 +408,9 @@
 **税务合规确认**：
 > 经查阅目标公司提供的税务登记信息及纳税申报资料，目标公司系[一般纳税人/小规模纳税人]，主要涉及的税种包括[列举]。根据目标公司提供的资料及声明，目标公司已按规定进行纳税申报和税款缴纳，截至本报告基准日不存在/存在欠税情况。[如有税收优惠：]目标公司目前享受[优惠名称]税收优惠政策，依据为[文件名称及文号]，优惠期限至[日期]。
 
+> 💡 **元典工商数据辅助**：建议拉取 `tax-arrears`（欠税信息）、`admin-penalty`（行政处罚，含税务处罚）子命令数据辅助本章撰写。
+> 详见 [enterprise-endpoints-summary.md](chineselaw/enterprise-endpoints-summary.md)
+
 ---
 
 ## 第7章 劳动人事管理
@@ -459,9 +477,10 @@
 **社保公积金确认**：
 > 根据目标公司提供的社会保险和住房公积金缴纳凭证，目标公司已为[X]名员工缴纳社会保险，为[X]名员工缴纳住房公积金。[如存在问题：]本律师注意到，目标公司存在[X]名员工未缴纳社会保险的情况，存在被社保经办机构责令补缴并加收滞纳金的风险。
 
----
+> 💡 **元典工商数据辅助**：劳动人事章节主要依赖目标公司提供材料；可参考 `litigation-doc`（劳动争议诉讼）子命令核查是否存在已进入司法程序的劳资纠纷。
+> 详见 [enterprise-endpoints-summary.md](chineselaw/enterprise-endpoints-summary.md)
 
-## 第8章 重大债权债务与担保
+---
 
 ### 8.1 调查目的
 全面掌握目标公司的负债状况、担保责任和应收款项回收情况，评估或有负债风险。
@@ -528,6 +547,9 @@
 > |------|---------|---------|---------|---------|---------|
 >
 > 本律师注意到，上述第[X]项担保[未经/已经]公司股东会/董事会决议批准。
+
+> 💡 **元典工商数据辅助**：建议拉取 `outbound-guarantee`（对外担保）、`equity-pledge`（股权质押）、`equity-frozen`（股权冻结）、`executed`（被执行人）、`dishonest`（失信被执行人）子命令数据辅助本章撰写。
+> 详见 [enterprise-endpoints-summary.md](chineselaw/enterprise-endpoints-summary.md)
 
 ---
 
@@ -597,6 +619,9 @@
 >
 > | 序号 | 处罚决定书文号 | 处罚机关 | 处罚事由 | 处罚内容 | 罚款缴纳 |
 > |------|-------------|---------|---------|---------|---------|
+
+> 💡 **元典工商数据辅助**：建议拉取 `litigation-doc`（裁判文书列表）、`litigation-stat`（诉讼统计）、`court-announcement`（法院公告）、`court-hearing`（开庭信息）、`admin-penalty`（行政处罚）、`executed`（被执行人）、`dishonest`（失信被执行人）子命令数据辅助本章撰写，覆盖面广于目标公司自提材料。
+> 详见 [enterprise-endpoints-summary.md](chineselaw/enterprise-endpoints-summary.md)
 
 ---
 

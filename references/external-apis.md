@@ -1,72 +1,98 @@
-# 外部数据源接入索引
+# 外部数据源使用指南
 
-本 skill 支持以可选方式接入第三方法律/工商数据 API，用于辅助底稿撰写。
-所有外部数据**仅作为线索与初稿**，不得替代律师对原始材料的核验（详见各接口规范文档）。
-
----
-
-## 接入清单
-
-| 来源 | 接口 | 用途 | 触发模式 | 计费 | 客户端命令 | 详细规范 |
-|------|------|------|---------|------|-----------|---------|
-| 元典开放平台 | 根据企业 id / USCC 获取企业详情 | 已知 USCC 时精准查询；第 1/3/4/9 章 | `init --uscc` / `draft` | 10 积分/次 | `chineselaw_client.py company-detail` | [chineselaw/company-detail.md](chineselaw/company-detail.md) |
-| 元典开放平台 | 根据企业名称 / 股票简称查询企业详情 | **名称起步入口**、重名核验、股票简称查询 | `init --name-lookup` / `draft` | 10 积分/次（最多 50 条） | `chineselaw_client.py company-info` | [chineselaw/company-info.md](chineselaw/company-info.md) |
-
-### 选用决策（同一目标企业）
-
-```
-是否已知统一社会信用代码？
-├── 是 → company-detail（精准、单价低）
-└── 否
-    ├── 仅知全称 → company-info（按名称检索候选 → 人工选定 → 记录 USCC）
-    └── 仅知股票简称 → company-info（同上）
-```
-
-**两个接口返回的字段 schema 完全一致**，命名上 detail 偏精准、info 偏检索；
-若 info 唯一命中即可直接使用，无需再调 detail。
+> **v26.4.29.1545 更新**：企业信息查询已迁移至独立 skill `yd-enterprise-info`，
+> 本文件说明如何在 draft 阶段配合使用。
 
 ---
 
-## 通用规则
+## 架构概述
 
-### 1. 凭证管理
-
-- 元典平台：环境变量 `CHINESELAW_API_KEY`（推荐），或 `--api-key` 临时传入
-- **任何凭证不得写入项目文件、底稿、日志、git 仓库**
-- skill 包不分发任何 key
-
-### 2. 调用前确认
-
-所有计费接口默认**调用前提示**律师确认积分扣费，可使用 `--yes` 跳过。
-适用场景：批量初始化时、CI 脚本调用时。
-
-### 3. 数据落盘与留痕
-
-所有 API 响应**必须**落盘到项目目录的 `raw/<供应商>/` 子目录，文件名格式：
 ```
-<接口名>-<查询关键字>-<YYYYMMDDTHHMMSS>.json
+legal-due-diligence (本 skill)
+    │
+    └─ 数据获取层：yd-enterprise-info skill
+         ├─ 22 个元典企业信息接口（含自动翻页）
+         └─ 数据落盘到 <项目>/raw/chineselaw/
 ```
 
-底稿在 §X.4 调查发现 引用时，必须注明：
-
-> 经查阅[供应商名称][接口名称]（调用时间 YYYY-MM-DD HH:MM，原始数据见 `raw/<供应商>/<文件名>`），……
-
-### 4. 与律师核验材料的关系
-
-外部 API 数据**永远不能直接列入 §X.2 已获取材料清单**。
-正确做法：
-- API 返回的工商信息 → 写入 §X.4 调查发现，并在 §X.3 未获取材料中列出"目标公司自行提供的营业执照、章程"等
-- 若 API 返回的关键事实（法定代表人、注册资本、经营状态）与目标公司提供的材料**不一致**，必须在 §X.5 风险提示中标注 🟡 中风险或 🔴 高风险
-
-### 5. 失败降级
-
-API 调用失败、超时、未找到、配额用尽等情况下：
-- skill 主流程**不应中断**
-- 在底稿对应章节的 §X.6 律师备忘中记录"YYYY-MM-DD 尝试通过 [API] 查询失败，原因：……"
-- 转回手工调查路径
+`yd-enterprise-info` 负责拉取数据，`legal-due-diligence` 负责读取数据并撰写底稿。
+两者职责分离，互不混淆。
 
 ---
 
-## 后续接入候选（待用户逐个评估）
+## 使用流程
 
-参考元典开放平台 https://open.chineselaw.com/api-square/
+### 步骤 1：获取凭证
+
+```bash
+export CHINESELAW_API_KEY=你的KEY
+```
+
+### 步骤 2：检索目标公司（仅知名称时）
+
+```bash
+python3 ~/.claude/skills/yd-enterprise-info/scripts/yd_enterprise_info.py \
+  search-company --name "目标公司名称"
+```
+
+输出候选列表，律师确认 USCC 后进入步骤 3。
+
+### 步骤 3：按章节需要拉取数据
+
+根据当前要写的底稿章节，参照下表选择子命令：
+
+| DD 章节 | 必调子命令 | 建议子命令 |
+|---|---|---|
+| 第 1 章（主体资格）| `base-info`、`change` | `abnormal`、`serious-violation` |
+| 第 2 章（股权结构）| `base-info`、`equity-pledge`、`equity-frozen` | — |
+| 第 3 章（公司治理）| `base-info` | — |
+| 第 4 章（核心资产）| `brand`、`patent`、`soft-right` | `copyright-work`、`website` |
+| 第 6 章（财税）| — | `tax-arrears` |
+| 第 8 章（债权债务）| `outbound-guarantee`、`equity-pledge` | — |
+| 第 9 章（诉讼）| `litigation-stat`、`litigation-doc`、`executed`、`dishonest`、`admin-penalty` | `court-announcement`、`court-hearing`、`equity-frozen`、`serious-violation` |
+| 第 10 章（其他）| `outbound-invest` | — |
+
+> 完整映射见：[references/chineselaw/enterprise-endpoints-summary.md](chineselaw/enterprise-endpoints-summary.md)
+
+拉取示例（第 4 章知识产权）：
+
+```bash
+USCC="目标公司USCC"
+OUTDIR="/path/to/project/raw/chineselaw/"
+for cmd in brand patent soft-right copyright-work; do
+  python3 ~/.claude/skills/yd-enterprise-info/scripts/yd_enterprise_info.py \
+    $cmd --tyshxydm $USCC --output $OUTDIR --yes
+done
+```
+
+### 步骤 4：在 draft 模式中使用数据
+
+draft 模式会自动检查 `<项目>/raw/chineselaw/` 目录：
+
+- **有 JSON 文件** → 直接读取，整合到底稿
+- **无 JSON 文件** → 提示"建议先运行 yd-enterprise-info XXX 命令获取工商数据"
+
+---
+
+## 引用规范（写入底稿时必须遵守）
+
+1. **不入材料清单**：API 数据**不得**列入 §X.2 已获取材料清单
+2. **明确来源**：在 §X.4 调查发现段首注明：
+   > 经查阅元典开放平台「XXX接口」（调用时间 YYYY-MM-DD HH:MM，原始数据见 `raw/chineselaw/<文件名>`）
+3. **核验完整性**：检查 `_meta.fetched_items == _meta.total`；不一致时在 §X.6 律师备忘注明"数据因翻页限制可能不完整，建议重跑 --max-pages 0"
+4. **冲突即风险**：API 数据与目标公司提供材料不一致，§X.5 风险提示标注 🟡 中或 🔴 高风险
+5. **失败留痕**：API 调用失败时在 §X.6 律师备忘中记录时间与原因
+
+---
+
+## 旧版本（v26.4.25.2039）兼容说明
+
+旧版本文件格式（`company_detail_*.json`、`company_info_*.json`）与新版本不兼容。建议重新使用 `yd-enterprise-info` 拉取全量数据。
+
+---
+
+## yd-enterprise-info 详细文档
+
+- GitHub：https://github.com/malnlda/yd-enterprise-info
+- 本地安装：`~/.claude/skills/yd-enterprise-info/`
+- 接口速查：`~/.claude/skills/yd-enterprise-info/references/endpoints.md`

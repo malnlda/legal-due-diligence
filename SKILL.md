@@ -10,18 +10,17 @@ description: |
   '尽调报告', '法律尽调', or needs to write legal due diligence working papers or reports.
 metadata:
   author: Chengzhe Mo
-  version: "26.4.25.2039"
+  version: "26.4.29.1545"
 compatibility: Designed for Claude Code. Requires Python 3.10+ for initialization script.
 ---
 
-# 法律尽职调查 Skill v26.4.25.2039
+# 法律尽职调查 Skill v26.4.29.1545
 
-> 分享版本：v26.4.25.2039  
+> 分享版本：v26.4.29.1545  
 > 使用提示：示例中的 `路径：[项目存放路径]` 需要替换为你自己的本机目录后再使用。
 
-> **本版新增**：可选接入元典开放平台两个接口——
-> 「按企业名称/股票简称检索」（**名称起步入口**）与「按 id/USCC 精准查询」，
-> 用于辅助生成第 1、3、4、9 章底稿初稿。详见 [§ 外部数据源（可选增强）](#外部数据源可选增强)。
+> **本版新增**：企业工商数据查询已独立拆分为 `yd-enterprise-info` skill（22 个子命令，支持翻页拉取全量数据）。
+> 本 skill 通过调用 `yd-enterprise-info` 获取辅助数据，详见 [§ 外部数据源（可选增强）](#外部数据源可选增强)。
 
 ## 目标
 
@@ -66,8 +65,7 @@ compatibility: Designed for Claude Code. Requires Python 3.10+ for initializatio
 - `purpose`：调查目的（如"股权收购"、"投资入股"）
 - `law_firm`：律师事务所名称
 - `lawyers`：经办律师姓名（可多个）
-- `uscc`：目标公司统一社会信用代码（提供后将自动调用元典 `company-detail`，参见 [§ 外部数据源](#外部数据源可选增强)）
-- `name_lookup`：未提供 USCC 时，按 `target` 名称调用元典 `company-info` 检索候选企业（命中后律师选定 USCC，再写入项目信息或重跑 init）
+- `uscc`：目标公司统一社会信用代码（可选；记录于 `project-info.md`；init 完成后提示对应的 yd-enterprise-info 命令）
 
 **输出**：项目目录结构如下：
 ```
@@ -231,69 +229,50 @@ compatibility: Designed for Claude Code. Requires Python 3.10+ for initializatio
 
 ## 外部数据源（可选增强）
 
-本 skill 支持以**可选**方式接入第三方法律/工商数据 API，用于辅助底稿撰写。
+本 skill 通过调用独立的 **`yd-enterprise-info`** skill 接入元典开放平台企业工商数据，用于辅助底稿撰写。
 所有外部数据**仅作为线索与初稿**，不得替代律师对原始材料的核验。
 
-### 已接入接口
+### 依赖 Skill
 
-| 来源 | 接口 | 适用章节 | 计费 |
-|------|------|---------|------|
-| 元典开放平台 | 根据企业 id / USCC 获取企业详情（精准） | 第 1、3、4、9 章 | 10 积分/次 |
-| 元典开放平台 | 根据企业名称 / 股票简称查询（**名称起步入口**） | init 阶段定位目标；同上各章 | 10 积分/次（≤50 条） |
+| Skill | 功能 | 子命令数 |
+|---|---|---|
+| `yd-enterprise-info` | 22 个子命令覆盖工商全量数据（股东、变更、商标、专利、诉讼等），支持翻页拉取 | 22 |
 
-详细规范、字段映射、引用模板见：
-- [references/external-apis.md](references/external-apis.md)（总索引 + 选用决策）
-- [references/chineselaw/company-detail.md](references/chineselaw/company-detail.md)
-- [references/chineselaw/company-info.md](references/chineselaw/company-info.md)
+- 安装路径：`~/.claude/skills/yd-enterprise-info/`
+- 配置文档：[references/chineselaw/enterprise-endpoints-summary.md](references/chineselaw/enterprise-endpoints-summary.md)
+- 完整规范：[references/external-apis.md](references/external-apis.md)
 
-### 触发方式
+### 典型调用流程
 
-**方式 A：init 时自动调用（已知 USCC）**
+**第一步：检索目标公司（仅知名称时）**
 
 ```bash
-python3 scripts/init_project.py \
-    --path /path/to/project \
-    --target "北京华宇元典信息服务有限公司" \
-    --client "深圳XX投资有限公司" \
-    --uscc 91110108MA0074PN30
+python3 ~/.claude/skills/yd-enterprise-info/scripts/yd_enterprise_info.py \
+    search-company --name "目标公司全称或股票简称"
 ```
 
-→ 调 `company-detail`，原始 JSON 存入 `<项目>/raw/chineselaw/`。
-
-**方式 B：init 时按名称检索候选（仅知名称/股票简称）**
-
-```bash
-python3 scripts/init_project.py \
-    --path /path/to/project \
-    --target "华宇软件" \
-    --client "深圳XX投资有限公司" \
-    --name-lookup --lookup-num 5
-```
-
-→ 调 `company-info`，打印候选清单。律师人工选定后：
-- 把 USCC 写入 `project-info.md`，或
-- 重跑：`init --uscc <选定USCC> --skip-api`（避免再扣积分）
-
-**方式 C：draft 前手动调用**
+**第二步：拉取工商全量数据（已知 USCC）**
 
 ```bash
 export CHINESELAW_API_KEY=xxxx
-python3 scripts/chineselaw_client.py company-info \
-    --name "目标公司全称" --num 10 \
-    --output /path/to/project/raw/chineselaw/
-python3 scripts/chineselaw_client.py company-detail \
-    --uscc XXX --output /path/to/project/raw/chineselaw/
+USCC=91110108MA0074PN30
+OUT=/path/to/project/raw/chineselaw/
+python3 ~/.claude/skills/yd-enterprise-info/scripts/yd_enterprise_info.py \
+    base-info --tyshxydm $USCC --output $OUT --yes
+python3 ~/.claude/skills/yd-enterprise-info/scripts/yd_enterprise_info.py \
+    litigation-doc --tyshxydm $USCC --output $OUT --yes
+# 更多子命令见 yd-enterprise-info 的 chapter-mapping.md
 ```
 
 ### 凭证
 
-- 环境变量 `CHINESELAW_API_KEY`（推荐）
+- 环境变量 `CHINESELAW_API_KEY`
 - **任何凭证不得入库**到 skill 包或项目仓库
 
 ### 引用规范（写入底稿时必须遵守）
 
 1. **不入材料清单**：API 数据**不得**列入 §X.2 已获取材料清单
-2. **明确来源**：在 §X.4 调查发现 段首注明"经查阅元典开放平台「企业详情」接口（调用时间 YYYY-MM-DD HH:MM，原始数据见 `raw/chineselaw/<文件名>`）"
+2. **明确来源**：在 §X.4 调查发现 段首注明"经查阅元典开放平台接口（调用时间 YYYY-MM-DD HH:MM，原始数据见 `raw/chineselaw/<文件名>`）"
 3. **冲突即风险**：若 API 数据与目标公司提供材料不一致，必须在 §X.5 风险提示中标注 🟡 中或 🔴 高风险
 4. **失败留痕**：API 调用失败时在 §X.6 律师备忘中记录时间与原因
 
@@ -314,24 +293,17 @@ python3 scripts/chineselaw_client.py company-detail \
 - 目的：股权收购
 ```
 
-### 示例 1b：初始化时自动拉取工商信息（已知 USCC）
+### 示例 1b：初始化并拉取工商信息（已知 USCC）
 
 ```
-帮我初始化一个尽调项目，并通过元典 API 自动拉取工商信息：
+帮我初始化一个尽调项目：
 - 目标公司：北京华宇元典信息服务有限公司
 - 统一社会信用代码：91110108MA0074PN30
 - 委托人：深圳XX投资有限公司
 - 路径：[项目存放路径]
 ```
 
-### 示例 1c：仅知名称时按名称检索
-
-```
-我只知道目标公司的名称（或股票简称），请帮我先检索候选企业：
-- 目标公司：华宇软件
-- 委托人：深圳XX投资有限公司
-- 路径：[项目存放路径]
-```
+→ init 完成后，按提示运行 `yd-enterprise-info base-info` 等命令拉取工商数据。
 
 ### 示例 2：写底稿
 
