@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-法律尽职调查项目初始化脚本 v26.4.29.1545
+法律尽职调查项目初始化脚本 v26.6.21.1305
 
 用法:
     python3 init_project.py \
@@ -18,15 +18,23 @@
     2. 生成 project-info.md（项目基本信息与进度跟踪）
     3. 生成 working-paper.md（10章合一的完整底稿，单一文件）
     4. 创建 report/ 与 raw/chineselaw/ 目录
-    5. 初始化完成后提示使用 yd-enterprise-info 拉取工商数据
+    5. 从模板复制 dd-checklist.md（双轨表头：AI轨 + 律师轨）
+    6. 从模板复制 materials-ledger.md（资料台账，只增不改）
+    7. 生成空的 adjudication-log.md（认定/改判流水账）
+    8. 生成 task-board.md（章级状态机，10章初始=未开始）
+    9. 初始化完成后提示使用 yd-enterprise-info 拉取工商数据
 
 注意：本脚本不再内置元典 API 调用，工商数据获取请使用独立 skill：
     ~/.claude/skills/yd-enterprise-info/scripts/yd_enterprise_info.py
 """
 
 import argparse
+import shutil
 from datetime import date
 from pathlib import Path
+
+# skill 根目录（脚本在 scripts/ 下，assets/ 与 scripts/ 同级）
+SKILL_ROOT = Path(__file__).parent.parent
 
 # 10大调查板块
 CHAPTERS = [
@@ -115,7 +123,7 @@ def generate_chapter_section(num: str, name: str, scope: str, methods: list[str]
 
 ## 第{num}章 {name}
 
-> **状态**：⬜ 未开始 　**最后更新**：
+> **状态**：⬜ 未开始　**数据基准批次**：（待填写）　**最后更新**：
 
 ### {num}.1 调查范围与方法
 
@@ -222,6 +230,54 @@ def generate_project_info(args) -> str:
 """
 
 
+def generate_task_board(args) -> str:
+    """生成章级状态看板（10章，初始状态=未开始）"""
+    rows = "\n".join(
+        f"| 第{num}章 {name} | 未开始 | | 否 | | |"
+        for num, name, _, _ in CHAPTERS
+    )
+    return f"""# 尽调任务看板（task-board.md）
+
+> **项目**：{args.target}
+> **基准日**：{args.base_date}
+> **创建日期**：{date.today().isoformat()}
+> **说明**：状态由 reconcile/draft/check 自动更新；律师复核后手动置"已完成"。
+
+## 章级状态一览
+
+| 章节 | 状态 | 数据基准批次 | 受影响 | 断点事项 | 自检备注 |
+|------|------|------------|--------|---------|---------|
+{rows}
+
+---
+
+**状态枚举**：未开始 / 进行中 / 已自检 / 待人工 / 已完成
+**受影响**：每批 reconcile 后，脚本自动标记本轮新批次影响的章节为"是"。
+**断点事项**：触发 CP-1～CP-6 时填写；消解后清空。
+"""
+
+
+def generate_adjudication_log() -> str:
+    """生成空认定台账（只有表头，无数据行）"""
+    return f"""# 认定台账（adjudication-log.md）
+
+> **说明**：本文件为认定/改判流水账，**只增不改**。
+> 每次 `adjudicate` 模式认定/改判均追加一行，不修改已有行。
+> 律师认定字段枚举：待认定 / 已齐备 / 部分-可推进 / 部分-需补 / 不适用 / 豁免
+
+| 时间 | 编号 | 资料项 | 原认定 | 新认定 | 认定人 | 理由/依据 | 触发批次 |
+|------|------|--------|--------|--------|--------|---------|---------|
+"""
+
+
+def copy_template(src_name: str, dst_path: Path) -> None:
+    """从 assets/ 复制模板到项目目录"""
+    src = SKILL_ROOT / "assets" / src_name
+    if not src.exists():
+        raise FileNotFoundError(f"模板文件不存在：{src}")
+    shutil.copy2(src, dst_path)
+
+
 def main():
     parser = argparse.ArgumentParser(description="法律尽职调查项目初始化")
     parser.add_argument("--path", required=True, help="项目存放路径")
@@ -249,6 +305,24 @@ def main():
     wp_path.write_text(generate_working_paper(args), encoding="utf-8")
     print(f"✅ 生成底稿文件：working-paper.md（10章合一）")
 
+    # dd-checklist.md（从双轨模板复制）
+    copy_template("dd-checklist-template.md", project_path / "dd-checklist.md")
+    print(f"✅ 生成尽调清单：dd-checklist.md（双轨模板，88项）")
+
+    # materials-ledger.md（从模板复制）
+    copy_template("materials-ledger-template.md", project_path / "materials-ledger.md")
+    print(f"✅ 生成资料台账：materials-ledger.md")
+
+    # adjudication-log.md（空台账）
+    adj_path = project_path / "adjudication-log.md"
+    adj_path.write_text(generate_adjudication_log(), encoding="utf-8")
+    print(f"✅ 生成认定台账：adjudication-log.md（空，待律师填写）")
+
+    # task-board.md（10章状态看板）
+    tb_path = project_path / "task-board.md"
+    tb_path.write_text(generate_task_board(args), encoding="utf-8")
+    print(f"✅ 生成任务看板：task-board.md（10章，初始状态=未开始）")
+
     # report/ 目录
     (project_path / "report").mkdir(exist_ok=True)
     print(f"✅ 创建报告目录：report/")
@@ -259,7 +333,7 @@ def main():
     print(f"✅ 创建原始数据目录：raw/chineselaw/")
 
 
-    print(f"\n{'='*50}")
+    print(f"\n{'='*55}")
     print(f"🎉 项目初始化完成！")
     print(f"📁 项目路径：{project_path}")
     print(f"📋 目标公司：{args.target}")
@@ -267,19 +341,29 @@ def main():
     print(f"📅 基准日：{args.base_date}")
     if args.uscc:
         print(f"🆔 USCC：{args.uscc}")
+    print(f"\n📂 生成文件：")
+    print(f"   project-info.md     — 项目基本信息")
+    print(f"   working-paper.md    — 底稿（10章合一）")
+    print(f"   dd-checklist.md     — 尽调清单（双轨，88项，律师认定默认=待认定）")
+    print(f"   materials-ledger.md — 资料台账（只增不改）")
+    print(f"   adjudication-log.md — 认定台账（空，律师填写）")
+    print(f"   task-board.md       — 任务看板（10章，初始=未开始）")
+    print(f"   report/             — 报告输出目录")
+    print(f"   raw/chineselaw/     — 外部 API 原始数据目录")
     print(f"\n📝 下一步：")
-    print(f"   1. 使用 yd-enterprise-info 拉取目标公司工商数据：")
+    print(f"   1. 收到第一批材料后运行 intake（资料核验）模式：")
+    print(f"      python3 scripts/reconcile_materials.py \\")
+    print(f"        --project {project_path}/ \\")
+    print(f"        --batch /path/to/batch-01/ \\")
+    print(f"        --batch-no 1")
+    print(f'   2. 核验后运行 adjudicate 模式，由律师对"需复核"项作出认定')
+    print(f"   3. 如需拉取工商数据（yd-enterprise-info）：")
     if args.uscc:
         print(f"      python3 ~/.claude/skills/yd-enterprise-info/scripts/yd_enterprise_info.py \\")
         print(f"        base-info --tyshxydm {args.uscc} --output {project_path}/raw/chineselaw/ --yes")
-        print(f"      （以及 brand, patent, litigation-doc 等，详见 yd-enterprise-info 的 chapter-mapping.md）")
     else:
-        print(f"      先检索目标公司：")
-        print(f"      python3 ~/.claude/skills/yd-enterprise-info/scripts/yd_enterprise_info.py \\")
-        print(f"        search-company --name \"{args.target}\"")
+        print(f"      先检索：search-company --name \"{args.target}\"")
         print(f"      获取 USCC 后再拉详细数据（详见 yd-enterprise-info skill）")
-    print(f"   2. 使用 draft 模式逐章撰写底稿：")
-    print(f"      示例：请帮我撰写第1章的底稿，材料在 [路径]")
 
 
 if __name__ == "__main__":
