@@ -1,0 +1,6 @@
+interface:
+  display_name: "法律尽职调查"
+  short_description: "逐章续写单一 Markdown 尽调底稿与报告，定稿后按指令转换为 DOCX"
+  default_prompt: "使用 $legal-due-diligence 分析指定章节材料，并续写同一份尽调底稿 Markdown 文稿。"
+policy:
+  allow_implicit_invocation: true
