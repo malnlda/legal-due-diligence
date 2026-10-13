@@ -1,36 +1,37 @@
 ---
 name: legal-due-diligence
 description: >-
-  为中国公司类法律尽职调查撰写和更新单一 Markdown 底稿，逐章顺序续写，并在律师要求时将指定章节转化为正式尽调报告；整稿完成后按律师指令转换为排版良好的 DOCX。适用于尽调项目初始化、逐章材料分析、补充资料后的章内更新、报告逐章撰写、底稿与报告核对及成稿 DOCX 转换；强调项目目的驱动、事实和分析充分展开、正文以叙述为主、少用表格、报告全文使用中文。Use when user says "尽职调查"、"尽调"、"底稿"、"尽调报告"、"DD报告"、"due diligence"。合同条款审查或单纯法规检索不应单独触发本技能。
+  为中国公司类法律尽职调查撰写和更新单一 Markdown 底稿，逐章顺序续写；在律师要求时将指定章节转化为正式尽调报告，或起草重大问题清单及分级解决方案；整稿完成后按律师指令转换为排版良好的 DOCX。适用于尽调项目初始化、逐章材料分析、补充资料后的章内更新、报告逐章撰写、重大问题清单起草、底稿与报告核对及成稿 DOCX 转换；强调项目目的驱动、事实和分析充分展开、报告作确定性陈述、历史沿革分段完整列举、正文以叙述为主、少用表格、报告全文使用中文。Use when user says "尽职调查"、"尽调"、"底稿"、"尽调报告"、"DD报告"、"重大问题清单"、"问题清单"、"due diligence"。合同条款审查或单纯法规检索不应单独触发本技能。
 metadata:
   author: Chengzhe Mo
-  version: "0.2.0"
+  version: "0.3.0"
 ---
 
 # 法律尽职调查
 
-本技能采用「一个底稿、逐章续写、律师判断、逐章成稿」的传统工作方式。目标是让律师尽快看到经过材料内容分析的底稿，而不是先收到一组清单、台账和流程文件。
+本技能采用「一个底稿、逐章续写、律师判断、逐章成稿」的传统工作方式，并可在报告前或报告后起草重大问题清单及分级解决方案。目标是让律师尽快看到经过材料内容分析的底稿，而不是先收到一组清单、台账和流程文件。
 
 撰写阶段以 Markdown 为工作格式，只需文本编辑能力；整稿完成、律师下达转换指令后，才需要环境具备 DOCX 生成与渲染能力。企业公开信息查询为可选增强。
 
 ## 不可变规则
 
-1. 一个项目只维护一份主底稿；律师要求出报告后，再维护一份报告。撰写阶段两者均为 Markdown 文件；只有整稿完成且律师明确指令后，才按 [references/docx-format.md](references/docx-format.md) 转换为 DOCX。转换后 DOCX 为有效稿，Markdown 稿归档不再更新。
+1. 一个项目只维护一份主底稿；律师要求出报告后，再维护一份报告；律师要求起草重大问题清单的，再维护一份问题清单。撰写阶段均为 Markdown 文件；只有整稿完成且律师明确指令后，才按 [references/docx-format.md](references/docx-format.md) 转换为 DOCX。转换后 DOCX 为有效稿，Markdown 稿归档不再更新。
 2. 不设置首次资料齐备性核验、`intake`、`adjudicate`、任务看板或推进闸门。不得仅按通用清单判断材料是否齐备。
-3. 一次对话只实质撰写或深度修订一个章节。机械性合并、统一格式或全文检索不受此限。
+3. 一次对话只实质撰写或深度修订一个章节。机械性合并、统一格式或全文检索不受此限。重大问题清单属于跨章节汇总，可以在一次对话中完成。
 4. 逐章顺序续写：每轮在已有文稿的基础上新增本轮章节，不得改动已写好的前文。续写中发现前文存在错误、遗漏或与本章矛盾的，在对话中向律师报告，由律师决定是否修改及如何修改。
 5. 首次收到材料时直接进入相关章节的内容核查。是否建议补件，必须在读懂材料、结合项目目标后判断。
-6. 底稿可以完整记录缺件、疑点、冲突和核查限制；正式报告不得把底稿中的缺件清单机械搬入正文。
+6. 底稿可以完整记录缺件、疑点、冲突和核查限制。报告和问题清单是对截至基准日现状的确定性陈述：正文不得出现“现有材料不能证明”“无法确认”“未提供”等调查限制式表述，底稿中的每一条限制或疑点只能删除、改写为已查明事实、改写为交易保护或整改措施，或交由律师决定；统一限定只写在“声明与限定条件”中。律师明确指示披露的除外。
 7. 事实、法律评价和交易建议分层书写。不得以「未提供」推定「不存在」，也不得用公开信息的无记录证明绝对不存在。
-8. 正文默认使用连贯段落。只有结构化数据确实需要横向比较或快速查阅时才使用表格。
+8. 正文默认使用连贯段落。只有结构化数据确实需要横向比较或快速查阅时才使用表格。历史沿革（公司登记事项、股权、董事监事高级管理人员的历次变更）一律分段书写，以依据文件起句，完整列明变更前后内容，不使用表格，不作概述。
 9. 报告全文使用中文。仅证照编号、专利号、域名、依法登记的外文名称等无法回避的原文可以保留，且首次出现时应有中文说明；不得使用英文缩写替代中文表述。
 10. 律师对项目范围、风险取舍和是否补件的明确意见优先于通用章节范围和本技能的默认做法。
 11. 调查范围由已经确定的项目目的或委托范围驱动。不能可靠确定且该信息会实质影响本章范围或结论时，应请求律师补充；不得自行预设为股权收购、资产收购、增资、合资、融资、重组或一般合规核查，也不得把任一场景的专项问题机械套用于其他项目。
 
 ## 任务路由
 
-- 新建项目、首次写底稿、更新底稿章节：先读 [references/working-paper-workflow.md](references/working-paper-workflow.md)，再读 [references/chapter-map.md](references/chapter-map.md) 中对应章节。
-- 将底稿改写为报告或修订报告章节：读 [references/report-writing.md](references/report-writing.md) 和 [references/legal-style.md](references/legal-style.md)。
+- 新建项目、首次写底稿、更新底稿章节：先读 [references/working-paper-workflow.md](references/working-paper-workflow.md)，再读 [references/chapter-map.md](references/chapter-map.md) 中对应章节；涉及历史沿革的，另读 [references/history-records.md](references/history-records.md)。
+- 将底稿改写为报告或修订报告章节：读 [references/report-writing.md](references/report-writing.md) 和 [references/legal-style.md](references/legal-style.md)；涉及历史沿革的，另读 [references/history-records.md](references/history-records.md)。
+- 起草或修订重大问题清单及分级解决方案：读 [references/issue-list.md](references/issue-list.md)、[references/report-writing.md](references/report-writing.md) 第五节和 [references/legal-style.md](references/legal-style.md)。
 - 将整稿转换为 DOCX 或调整成稿版式：读 [references/docx-format.md](references/docx-format.md)。
 - 每次交付前：读 [references/quality-gates.md](references/quality-gates.md) 并执行对应检查。
 - 使用企业信息、法规、案例或其他外部检索结果时：读 [references/public-information.md](references/public-information.md)。
@@ -78,13 +79,17 @@ metadata:
 
 ### 4. 转化为报告
 
-只有律师明确要求时，才把已审阅的底稿章节转成报告章节。首次创建报告文件时先按 [references/report-writing.md](references/report-writing.md) 建立报告骨架，此后逐章续写。报告应先写已有事实，再写这些事实反映的法律和交易风险；底稿中的“未获取/待补充”内容必须逐项通过报告必要性判断。
+只有律师明确要求时，才把已审阅的底稿章节转成报告章节。首次创建报告文件时先按 [references/report-writing.md](references/report-writing.md) 建立报告骨架，此后逐章续写。报告应先写已有事实，再写这些事实反映的法律和交易风险；底稿中的缺件、疑点和核查限制按 [references/report-writing.md](references/report-writing.md) 第五节逐条确定去向，报告正文作确定性陈述。
 
-### 5. 两遍修订
+### 5. 重大问题清单（可选）
+
+律师要求时，按 [references/issue-list.md](references/issue-list.md) 起草重大问题清单及分级解决方案。律师可以选择在报告前（以经审阅的底稿为依据）或报告后（以报告为依据）起草；未说明时，按该文件第二节的规则确定。清单是客户文件，适用报告的全部口径规则。
+
+### 6. 两遍修订
 
 第一遍检查事实、数据、法律依据和交易逻辑；第二遍再按 [references/legal-style.md](references/legal-style.md) 去除机械、模板化和 AI 化表达。文风优化不得改变事实、数字、文件名称、法律引文、限定范围或风险结论。
 
-### 6. 成稿转换为 DOCX
+### 7. 成稿转换为 DOCX
 
 整稿完成、律师明确下达转换指令后，按 [references/docx-format.md](references/docx-format.md) 的版式规范和操作流程，把 Markdown 稿转换为排版良好的 DOCX，渲染核对全部页面后交付。未收到指令前，不生成 DOCX。转换后 DOCX 为有效稿，后续修改在 DOCX 上进行。
 
@@ -94,7 +99,8 @@ metadata:
 
 1. `关于[标的公司]的法律尽职调查底稿.md`；
 2. `关于[标的公司]的法律尽职调查报告.md`（仅在律师要求出报告后创建）；
-3. 对应的 DOCX 成稿（仅在律师下达转换指令后生成，一份 Markdown 对应一份 DOCX）。
+3. `关于[标的公司]的法律尽职调查重大问题清单及解决方案.md`（仅在律师要求后创建）；
+4. 对应的 DOCX 成稿（仅在律师下达转换指令后生成，一份 Markdown 对应一份 DOCX）。
 
 以下文件不得自动创建：资料齐备性核验报告、材料映射表、AI 研判报告、双轨清单、材料台账、认定日志、任务看板、推进闸门报告、按章拆分文稿、每轮带时间戳的新副本。版本留存由律师自行复制存档，模型不主动生成副本。
 
@@ -110,6 +116,9 @@ metadata:
 - 是否建议补件以及补件理由；
 - 续写中发现的前文错误、遗漏或矛盾（如有），待律师决定是否修改；
 - 若底稿更新的章节已有对应报告章节，提示该报告章节可能需要相应修订；
-- 已完成的质量检查。
+- 已完成的质量检查；
+- 报告章节：底稿中各条限制或疑点的去向（删除、改为事实、改为措施、交由律师决定），其中交由律师决定的逐项列明；
+- 报告章节：与已有问题清单不一致之处（如有）；
+- 问题清单：按 issue-list.md 第六节第 3 项说明。
 
 不要再生成一份「成果目录」来解释应当查看哪个文件。
