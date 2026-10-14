@@ -61,6 +61,6 @@ legal-due-diligence/
 
 ## 版本
 
-当前版本 `0.3.1`。
+当前版本 `0.4.0`。
 
 完整的版本演进和变更说明见 [CHANGELOG.md](CHANGELOG.md)；可下载的历史版本见 [GitHub Releases](https://github.com/malnlda/legal-due-diligence/releases)。
