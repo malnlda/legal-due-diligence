@@ -4,25 +4,6 @@
 
 后来认为这种命名不利于表达兼容性与变更幅度，因此自 `0.1.0` 起改用[语义化版本](https://semver.org/lang/zh-CN/)。`0.1.0` 是工作流重建后的新版本线起点，不表示项目此前没有发布版本。判断项目演进顺序时应以下文记录的完成时间为准，不应将 `26.*` 与 `0.*` 作数值大小比较。
 
-## 0.5.1 - 2026-10-17
-
-建立以本 GitHub 仓库为唯一正本的多运行时安装与防漂移机制，不改变法律尽调方法论、写作规则或风险口径。
-
-### 新增
-
-- 新增仅使用 Python 标准库的 `scripts/sync_skill.py`，支持 Codex CLI、Hermes Agent 和可选的 Claude Code 目标；
-- 支持 `--dry-run` 和 `--check`，可报告目标中的缺失、修改、类型冲突和陈旧项目；
-- Hermes 目标必须通过 `HERMES_HOME` 配合 `--hermes`，或通过 `--hermes-home` 显式指定 profile；
-- 新增标准库 `unittest` 测试，覆盖运行时文件复制、开发文件排除、陈旧文件清理、漂移检测和 dry-run 不写盘。
-
-### 变更
-
-- 安装时仅镜像 `SKILL.md`、`agents/` 和 `references/`，不复制 `.git`、测试、脚本及缓存等开发文件；
-- 同步采用临时完整镜像替换目标目录，清除正本已删除或目标本地额外的文件；
-- Codex 默认目标采用当前 USER 级路径 `$HOME/.agents/skills/legal-due-diligence`，并以 `--codex-skills-dir` 支持自定义 skills 目录；
-- README 区分 Codex 模型、Codex CLI 与 Hermes Agent，补充当前 Ophilia profile 在 macOS 上的安装、检查和更新命令，以及 Hermes 通过 `skills.external_dirs` 共享 Codex USER 级技能目录的可选架构与同名技能遮蔽规则；
-- 技能版本升级至 `0.5.1`。
-
 ## 0.5.0 - 2026-10-14
 
 根据律师既往项目的实际做法，把"重大问题清单及分级解决方案"改为不分级、问题与处理措施合一的"主要法律问题清单"。
